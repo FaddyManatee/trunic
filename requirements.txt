@@ -1,0 +1,17 @@
+attrs==22.2.0
+clldutils==3.12.0
+colorlog==6.7.0
+csvw==2.0.0
+dlinfo==1.2.1
+isodate==0.6.1
+joblib==1.1.1
+phonemizer==3.2.1
+Pillow==8.4.0
+python-dateutil==2.8.2
+regex==2022.10.31
+rfc3986==1.5.0
+segments==2.2.1
+six==1.16.0
+tabulate==0.8.10
+typing_extensions==4.1.1
+uritemplate==4.1.1
