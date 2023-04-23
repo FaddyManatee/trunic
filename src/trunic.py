@@ -59,28 +59,53 @@ class Trunic:
 
     def __init__(self, text: str) -> None:
         sep = Separator(phone=" ", word="-")
-        self.ph = phonemize(text, language="en-gb-x-rp", strip=True, separator=sep, preserve_punctuation=True)
-        self.ph = [i.split() for i in self.ph.split("-")]
-        print(self.ph)
+        self.phonemes = phonemize(text, language="en-gb-x-rp", strip=True, separator=sep, preserve_punctuation=True)
+        self.phonemes = [i.split() for i in self.phonemes.split("-")]
+
+
+    def to_ipa(self) -> str:
+        output = "/"
+        for word in self.phonemes:
+            for i in range(0, len(word)):
+                output += word[i]
+            output += " "
+        return output.strip() + "/"
+    
+
+    """
+    Prints a list of words broken down into their phonemes.
+    """
+    def to_string(self) -> str:
+        return str(self.phonemes)
 
 
     """
     Returns the string in the format specified by
     https://github.com/dirdam/fonts/tree/main/tunic#how-to-use-the-font
     """
-    def to_string(self):
-        pass
+    def decode(self) -> str:
+        output = ""
+        for word in self.phonemes:
+            for i in range(0, len(word)):
+                if word[i] in dict.keys(Trunic.vowels):
+                    word[i] = Trunic.vowels.get(word[i])
+                else:
+                    word[i] = Trunic.consts.get(word[i])
+                
+                output += word[i]
+            output += " "
+        return output.strip()
 
 
-    def to_image(self, 
-                output: str,
-                img_size: tuple[int, int],
-                color: str | tuple[int, int, int],
-                font_size: int,
-                font_color: str | tuple[int, int, int]) -> None:
+    def to_png(self, 
+               output: str,
+               font_size: int,
+               img_size: tuple[int, int],
+               back_color: str | tuple[int, int, int],
+               font_color: str | tuple[int, int, int]) -> None:
 
         trunic = ImageFont.truetype(Trunic.font, font_size)
-        img = Image.new("RGBA", size=img_size, color=color)
+        img = Image.new("RGBA", size=img_size, color=back_color)
         draw = ImageDraw.Draw(img)
-        draw.text(xy=(10, 0), text=self.to_string(), fill=font_color, font=trunic)
+        draw.text(xy=(10, 0), text=self.decode(), fill=font_color, font=trunic)
         img.save(output + ".png")
