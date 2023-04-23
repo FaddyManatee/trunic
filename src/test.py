@@ -1,4 +1,5 @@
+import sys
 from trunic import Trunic
 
 
-d = Trunic("paw")
+d = Trunic(sys.argv[1])
