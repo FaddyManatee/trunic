@@ -1,4 +1,5 @@
 import os
+from copy import deepcopy
 from phonemizer import phonemize
 from phonemizer.separator import Separator
 from PIL import ImageFont, Image, ImageDraw
@@ -63,6 +64,59 @@ class Trunic:
         self.phonemes = [i.split() for i in self.phonemes.split("-")]
 
 
+    # Recursive solution.
+    def _build_str(self, phonemes=None, lst=None, out=""):
+        # Base case.
+        if lst is not None and len(lst) == 0:
+            return out
+        
+        if lst is None:
+            lst = deepcopy(phonemes)
+
+        if lst[0] in dict.keys(Trunic.consts):
+            out += Trunic.consts.get(lst[0])
+            del lst[0]
+
+            if len(lst) >= 1:
+                next = lst[0]
+                if next in dict.keys(Trunic.consts):
+                    out += Trunic.consts.get(lst[0])
+                    del lst[0]
+
+                elif next in dict.keys(Trunic.vowels):
+                    out += Trunic.vowels.get(lst[0])
+                    del lst[0]
+
+        elif lst[0] in dict.keys(Trunic.vowels):
+            out += Trunic.vowels.get(lst[0])
+            del lst[0]
+
+            if len(lst) >= 1:
+                next = lst[0]
+                if next in dict.keys(Trunic.consts):
+                    out += Trunic.consts.get(lst[0])
+                    out += "_"
+                    del lst[0]
+
+                elif next in dict.keys(Trunic.vowels):
+                    out += Trunic.vowels.get(lst[0])
+                    del lst[0]
+        
+        return self._build_str(lst=lst, out=out)
+
+
+    """
+    Returns the string in the format specified by
+    https://github.com/dirdam/fonts/tree/main/tunic#how-to-use-the-font
+    """
+    def decode(self) -> str:
+        output = ""
+        for word in self.phonemes:
+            output += self._build_str(word)
+            output += " "
+        return output
+
+
     def to_ipa(self) -> str:
         output = "/"
         for word in self.phonemes:
@@ -79,30 +133,18 @@ class Trunic:
         return str(self.phonemes)
 
 
-    """
-    Returns the string in the format specified by
-    https://github.com/dirdam/fonts/tree/main/tunic#how-to-use-the-font
-    """
-    def decode(self) -> str:
-        output = ""
-        for word in self.phonemes:
-            for i in range(0, len(word)):
-                if word[i] in dict.keys(Trunic.vowels):
-                    word[i] = Trunic.vowels.get(word[i])
-                else:
-                    word[i] = Trunic.consts.get(word[i])
-                
-                output += word[i]
-            output += " "
-        return output.strip()
-
-
+    # def to_png(self, 
+    #            output: str,
+    #            font_size: int,
+    #            img_size: tuple[int, int],
+    #            back_color: str | tuple[int, int, int],
+    #            font_color: str | tuple[int, int, int]) -> None:
     def to_png(self, 
                output: str,
                font_size: int,
-               img_size: tuple[int, int],
-               back_color: str | tuple[int, int, int],
-               font_color: str | tuple[int, int, int]) -> None:
+               img_size,
+               back_color: str,
+               font_color: str) -> None:
 
         trunic = ImageFont.truetype(Trunic.font, font_size)
         img = Image.new("RGBA", size=img_size, color=back_color)
