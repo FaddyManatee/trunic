@@ -10,26 +10,35 @@ class Trunic:
     vowels = {          # EXAMPLE       # PRONOUNCIATION
         "æ":"ae",       # back, sad     a
         "ɑː":"ar",      # arm, large    ar
+        "ɑːɹ":"ar",
         "ɒ":"o",        # swan, box     ah
         "eɪ":"ei",      # bay, game     ay
         "ɛ":"e",        # end, pet      e
         "e":"e",
         "iː":"ii",      # bee, team     ee
+        "i":"ii",
         "iə":"ir",      # near, here    eer
+        "ɪɹ":"ir",
         "ə":"a",        # the, about    eh      # Map to a or e dependant on consonant?
+        "ᵻ":"e",
         "ʌ":"a",
         "eə":"er",      # air, vary     ere
+        "ɛɹ":"er",
         "ɪ":"i",        # bit, rich     i
         "aɪ":"ai",      # guy, life     ie
         "ɜː":"xr",      # bird, work    ir
         "ɐ":"xr",
+        "ɚ":"xr",
         "aɪə":"aicxr",  # fire          ire
+        "aɪɚ":"aicxr",
         "əʊ":"ou",      # toe, over     oh
+        "oʊ":"ou",
         "ɔɪ":"oi",      # toy, avoid    oi
         "uː":"u",       # too, june     oo
         "ʊ":"x",        # wolf, good    ou
         "aʊ":"au",      # how, hour     ow
-        "ɔː":"or"       # your, cure    ore
+        "ɔː":"or",      # your, cure    ore
+        "oːɹ":"or"
     }
 
     consts = {          # EXAMPLE       PRONOUNCIATION
@@ -43,7 +52,7 @@ class Trunic:
         "dʒ":"dj",      # jam, judge    j
         "k":"k",        # cat, skip     k
         "l":"l",        # live, leaf    l
-        "əl":"le_",     # apple, towel  el
+        "əl":"la_",     # apple, towel  el
         "m":"m",        # man, mime     m
         "n":"n",        # net, nun      n
         "ŋ":"ng",       # rink, sing    ng
@@ -52,6 +61,7 @@ class Trunic:
         "s":"s",        # sit, sass     s
         "ʃ":"sh",       # shut, shoe    sh
         "t":"t",        # tunic, stop   t
+        "ɾ":"t",
         "θ":"th",       # think, bath   th
         "ð":"dh",       # this, the     th
         "v":"v",        # vine, verge   v
@@ -65,8 +75,14 @@ class Trunic:
 
     def __init__(self, text: str) -> None:
         sep = Separator(phone=" ", word=None)
-        self.phonemes = phonemize(text.split(), language="en-gb-x-rp", strip=True, separator=sep, preserve_punctuation=True)
+        self.phonemes = phonemize(text.split(), language="en-us", strip=True, separator=sep, preserve_punctuation=True)
         self.phonemes = [i.split() for i in self.phonemes]
+
+        for word in self.phonemes:
+            for i, _ in enumerate(word):
+                if i + 1 < len(word) - 1:
+                    if word[i] == "ŋ" and word[i + 1] == "ɡ":
+                        del word[i + 1]
 
 
     # Recursive solution.
@@ -78,39 +94,43 @@ class Trunic:
         if lst is None:
             lst = deepcopy(word)
 
-        if lst[0] in dict.keys(Trunic.consts):
-            out += Trunic.consts.get(lst[0])
-            del lst[0]
+        # Get a phoneme pair.
+        x = lst.pop(0)
+        y = None
+        if len(lst) > 0:
+            y = lst.pop(0)
 
-            if len(lst) > 0:
-                next = lst[0]
-                if next in dict.keys(Trunic.consts):
-                    out += Trunic.consts.get(lst[0])
+        if y is not None:
+            # CV
+            if x in dict.keys(Trunic.consts) and y in dict.keys(Trunic.vowels):
+                out += Trunic.consts.get(x)
+                out += Trunic.vowels.get(y)
 
-                elif next in dict.keys(Trunic.vowels):
-                    out += Trunic.vowels.get(lst[0])                
-                del lst[0]
-
-        elif lst[0] in dict.keys(Trunic.vowels):
-            first = Trunic.vowels.get(lst[0])
-            del lst[0]
-
-            if len(lst) > 0 and len(out) == 0:  # Check conditional 2 - can occur more than once e.g. 'irish'
-                next = Trunic.consts.get(lst[0])
-                del lst[0]
-                out += next
-                out += first
+            # VC
+            elif x in dict.keys(Trunic.vowels) and y in dict.keys(Trunic.consts):
+                out += Trunic.consts.get(y)
+                out += Trunic.vowels.get(x)
                 out += "_"
 
-            elif len(lst) > 0:
-                next = Trunic.consts.get(lst[0])
-                del lst[0]
-                out += first
-                out += next
+            # CC
+            elif x in dict.keys(Trunic.consts) and y in dict.keys(Trunic.consts):
+                out += Trunic.consts.get(x)
+                lst.insert(0, y)
 
-            else:
-                out += first
-      
+            # VV
+            elif x in dict.keys(Trunic.vowels) and y in dict.keys(Trunic.vowels):
+                out += Trunic.vowels.get(x)
+                lst.insert(0, y)
+        else:
+            # C
+            if x in dict.keys(Trunic.consts):
+                out += Trunic.consts.get(x)
+
+            # V
+            elif x in dict.keys(Trunic.vowels):
+                out += "c"
+                out += Trunic.vowels.get(x)
+ 
         return self._build_str(lst=lst, out=out)
 
 
