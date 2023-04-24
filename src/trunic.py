@@ -10,7 +10,7 @@ class Trunic:
     vowels = {          # EXAMPLE       # PRONOUNCIATION
         "æ":"ae",       # back, sad     a
         "ɑː":"ar",      # arm, large    ar
-        "ɒ":"a",        # swan, box     ah
+        "ɒ":"o",        # swan, box     ah
         "eɪ":"ei",      # bay, game     ay
         "ɛ":"e",        # end, pet      e
         "e":"e",
