@@ -1,5 +1,6 @@
 import os
 from copy import deepcopy
+from math import ceil
 from phonemizer import phonemize
 from phonemizer.separator import Separator
 from PIL import ImageFont, Image, ImageDraw
@@ -37,7 +38,8 @@ class Trunic:
         "ʊ":"x",        # wolf, good    ou
         "aʊ":"au",      # how, hour     ow
         "ɔː":"or",      # your, cure    ore
-        "oːɹ":"or"
+        "oːɹ":"or",
+        "ɔːɹ":"or"
     }
 
     consts = {          # EXAMPLE       PRONOUNCIATION
@@ -76,6 +78,7 @@ class Trunic:
         sep = Separator(phone=" ", word=None)
         self.phonemes = phonemize(text.split(), language="en-us", strip=True, separator=sep, preserve_punctuation=True)
         self.phonemes = [i.split() for i in self.phonemes]
+        self.symbols = 0
 
         for word in self.phonemes:
             for i, _ in enumerate(word):
@@ -104,12 +107,14 @@ class Trunic:
             if x in dict.keys(Trunic.consts) and y in dict.keys(Trunic.vowels):
                 out += Trunic.consts.get(x)
                 out += Trunic.vowels.get(y)
+                self.symbols += 1
 
             # VC
             elif x in dict.keys(Trunic.vowels) and y in dict.keys(Trunic.consts):
                 out += Trunic.consts.get(y)
                 out += Trunic.vowels.get(x)
                 out += "_"
+                self.symbols += 1
 
             # CC
             elif x in dict.keys(Trunic.consts) and y in dict.keys(Trunic.consts):
@@ -129,6 +134,8 @@ class Trunic:
             elif x in dict.keys(Trunic.vowels):
                 out += "c"
                 out += Trunic.vowels.get(x)
+
+            self.symbols += 1
  
         return self._build_str(lst=lst, out=out)
 
@@ -139,9 +146,17 @@ class Trunic:
     """
     def decode(self) -> str:
         output = ""
+        self.symbols = 0
+        self.spaces = 0
+
         for word in self.phonemes:
             output += self._build_str(word)
             output += " "
+
+        # Account for spaces between words.
+        if len(self.phonemes) > 1:
+            self.spaces += len(self.phonemes) - 1
+
         return output
 
 
@@ -166,24 +181,27 @@ class Trunic:
     Accepts transparency values in colours.
     Accepts hex, rgb, hsl and hsv strings.
     """
-    # def to_png(self, 
-    #            path: str,
-    #            file_name: str,
-    #            font_size: int,
-    #            img_size: tuple[int, int],
-    #            back_color: str | tuple[int, int, int],
-    #            font_color: str | tuple[int, int, int]) -> None:
     def to_png(self, 
                path: str,
                file_name: str,
                font_size: int,
-               img_size,
-               back_color: str,
-               font_color: str) -> None:
+               back_color: str | tuple[int, int, int],
+               font_color: str | tuple[int, int, int]) -> None:
+
+        # w:66  h:96  sp:30 -> 100
+        # w:132 h:192 sp:60 -> 200
+        if self.symbols == 1:
+            w_factor = 1.31515152
+        else:
+            w_factor = 1.21515152
+
+        w = ceil(((font_size / w_factor) * self.symbols) + (font_size * 0.3 * self.spaces))
+        h = ceil(font_size * 1.45454545)
+
+        trunic = ImageFont.truetype(Trunic.font, font_size)
+        img = Image.new("RGBA", size=(w, h), color=back_color)
+        draw = ImageDraw.Draw(img)
+        draw.text(xy=(font_size / 10, font_size / 6), text=self.decode(), fill=font_color, font=trunic)
 
         file_name += ".png"
-        trunic = ImageFont.truetype(Trunic.font, font_size)
-        img = Image.new("RGBA", size=img_size, color=back_color)
-        draw = ImageDraw.Draw(img)
-        draw.text(xy=(10, 0), text=self.decode(), fill=font_color, font=trunic)
         img.save(fp=os.path.join(path, file_name), bitmap_format="png")
