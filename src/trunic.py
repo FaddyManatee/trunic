@@ -7,65 +7,66 @@ from PIL import ImageFont, Image, ImageDraw
 
 
 class Trunic:
-    vowels = {        # EXAMPLE       # PRONOUNCIATION
-        "æ":"ae",     # back, sad     a
-        "ɑː":"ar",    # arm, large    ar
-        "ɒ":"a",      # swan, box     ah
-        "eɪ":"ei",    # bay, game     ay
-        "ɛ":"e",      # end, pet      e
+    vowels = {          # EXAMPLE       # PRONOUNCIATION
+        "æ":"ae",       # back, sad     a
+        "ɑː":"ar",      # arm, large    ar
+        "ɒ":"a",        # swan, box     ah
+        "eɪ":"ei",      # bay, game     ay
+        "ɛ":"e",        # end, pet      e
         "e":"e",
-        "iː":"ii",    # bee, team     ee
-        "iə":"ir",    # near, here    eer
-        "ə":"a",      # the, about    eh
-        "ɐ":"a",
+        "iː":"ii",      # bee, team     ee
+        "iə":"ir",      # near, here    eer
+        "ə":"a",        # the, about    eh      # Map to a or e dependant on consonant?
         "ʌ":"a",
-        "eə":"er",    # air, vary     ere
-        "ɪ":"i",      # bit, rich     i
-        "aɪ":"ai",    # guy, life     ie
-        "ɜː":"xr",    # bird, work    ir
-        "əʊ":"ou",    # toe, over     oh
-        "ɔɪ":"oi",    # toy, avoid    oi
-        "uː":"u",     # too, june     oo
-        "ʊ":"x",      # wolf, good    ou
-        "aʊ":"au",    # how, hour     ow
-        "ɔː":"or"     # your, cure    ore
+        "eə":"er",      # air, vary     ere
+        "ɪ":"i",        # bit, rich     i
+        "aɪ":"ai",      # guy, life     ie
+        "ɜː":"xr",      # bird, work    ir
+        "ɐ":"xr",
+        "aɪə":"aicxr",  # fire          ire
+        "əʊ":"ou",      # toe, over     oh
+        "ɔɪ":"oi",      # toy, avoid    oi
+        "uː":"u",       # too, june     oo
+        "ʊ":"x",        # wolf, good    ou
+        "aʊ":"au",      # how, hour     ow
+        "ɔː":"or"       # your, cure    ore
     }
 
-    consts = {        # EXAMPLE       PRONOUNCIATION
-        "b":"b",      # boss, baby    b
-        "tʃ":"ch",    # chat, catch   ch
-        "d":"d",      # dog, dad      d
-        "f":"f",      # fox, fail     f
-        "g":"g",      # gun, bag      g
+    consts = {          # EXAMPLE       PRONOUNCIATION
+        "b":"b",        # boss, baby    b
+        "tʃ":"ch",      # chat, catch   ch
+        "d":"d",        # dog, dad      d
+        "f":"f",        # fox, fail     f
+        "g":"g",        # gun, bag      g
         "ɡ":"g",
-        "h":"h",      # hop, house    h
-        "dʒ":"dj",    # jam, judge    j
-        "k":"k",      # cat, skip     k
-        "l":"l",      # live, leaf    l
-        "əl":"le_",
-        "m":"m",      # man, mime     m
-        "n":"n",      # net, nun      n
-        "ŋ":"ng",     # rink, sing    ng
-        "p":"p",      # poppy, pip    p
-        "ɹ":"r",      # run, borrow   r
-        "s":"s",      # sit, sass     s
-        "ʃ":"sh",     # shut, shoe    sh
-        "t":"t",      # tunic, stop   t
-        "θ":"th",     # think, bath   th
-        "ð":"dh",     # this, the     th
-        "v":"v",      # vine, verge   v
-        "w":"w",      # wow, worry    w
-        "j":"y",      # you, yes      y
-        "z":"z",      # zoo           z
-        "ʒ":"j"       # vision        zh
+        "h":"h",        # hop, house    h
+        "dʒ":"dj",      # jam, judge    j
+        "k":"k",        # cat, skip     k
+        "l":"l",        # live, leaf    l
+        "əl":"le_",     # apple, towel  el
+        "m":"m",        # man, mime     m
+        "n":"n",        # net, nun      n
+        "ŋ":"ng",       # rink, sing    ng
+        "p":"p",        # poppy, pip    p
+        "ɹ":"r",        # run, borrow   r
+        "s":"s",        # sit, sass     s
+        "ʃ":"sh",       # shut, shoe    sh
+        "t":"t",        # tunic, stop   t
+        "θ":"th",       # think, bath   th
+        "ð":"dh",       # this, the     th
+        "v":"v",        # vine, verge   v
+        "w":"w",        # wow, worry    w
+        "j":"y",        # you, yes      y
+        "z":"z",        # zoo           z
+        "ʒ":"j"         # vision        zh
     }
 
     font = os.path.join(os.path.dirname(__file__), "trunic.otf")
 
     def __init__(self, text: str) -> None:
-        sep = Separator(phone=" ", word="-")
-        self.phonemes = phonemize(text, language="en-gb-x-rp", strip=True, separator=sep, preserve_punctuation=True)
-        self.phonemes = [i.split() for i in self.phonemes.split("-")]
+        sep = Separator(phone=" ", word=None)
+        self.phonemes = phonemize(text.split(), language="en-gb-x-rp", strip=True, separator=sep, preserve_punctuation=True)
+        self.phonemes = [i.split() for i in self.phonemes]
 
 
     # Recursive solution.
@@ -94,7 +95,7 @@ class Trunic:
             first = Trunic.vowels.get(lst[0])
             del lst[0]
 
-            if len(lst) > 0 and len(out) == 0:
+            if len(lst) > 0 and len(out) == 0:  # Check conditional 2 - can occur more than once e.g. 'irish'
                 next = Trunic.consts.get(lst[0])
                 del lst[0]
                 out += next
@@ -141,12 +142,19 @@ class Trunic:
         return str(self.phonemes)
 
 
+    # def to_png(self, 
+    #            output: str,
+    #            font_size: int,
+    #            img_size: tuple[int, int],
+    #            back_color: str | tuple[int, int, int],
+    #            font_color: str | tuple[int, int, int]) -> None:
     def to_png(self, 
                output: str,
                font_size: int,
-               img_size: tuple[int, int],
-               back_color: str | tuple[int, int, int],
-               font_color: str | tuple[int, int, int]) -> None:
+               img_size,
+               back_color: str,
+               font_color: str) -> None:
+
         trunic = ImageFont.truetype(Trunic.font, font_size)
         img = Image.new("RGBA", size=img_size, color=back_color)
         draw = ImageDraw.Draw(img)
