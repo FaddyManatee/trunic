@@ -1,5 +1,4 @@
 import os
-import svgwrite as svg
 from copy import deepcopy
 from phonemizer import phonemize
 from phonemizer.separator import Separator
@@ -162,28 +161,29 @@ class Trunic:
         return str(self.phonemes)
 
 
+    """
+    Creates a new .png file containing the Trunic text.
+    Accepts transparency values in colours.
+    Accepts hex, rgb, hsl and hsv strings.
+    """
     # def to_png(self, 
-    #            output: str,
+    #            path: str,
+    #            file_name: str,
     #            font_size: int,
     #            img_size: tuple[int, int],
     #            back_color: str | tuple[int, int, int],
     #            font_color: str | tuple[int, int, int]) -> None:
     def to_png(self, 
-               output: str,
+               path: str,
+               file_name: str,
                font_size: int,
                img_size,
                back_color: str,
                font_color: str) -> None:
 
+        file_name += ".png"
         trunic = ImageFont.truetype(Trunic.font, font_size)
         img = Image.new("RGBA", size=img_size, color=back_color)
         draw = ImageDraw.Draw(img)
         draw.text(xy=(10, 0), text=self.decode(), fill=font_color, font=trunic)
-        img.save(output + ".png")
-
-    
-    def to_svg():
-        img = svg.Drawing('test.svg', profile='tiny')
-        img.add(img.line((0, 0), (10, 0), stroke=svg.rgb(10, 10, 16, '%')))
-        img.add(img.text('Test', insert=(0, 0.2), fill='red'))
-        img.save()
+        img.save(fp=os.path.join(path, file_name), bitmap_format="png")
