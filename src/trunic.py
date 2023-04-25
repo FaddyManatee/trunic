@@ -1,8 +1,7 @@
 import os
+import msgspec
 from copy import deepcopy
 from math import ceil
-from phonemizer import phonemize
-from phonemizer.separator import Separator
 from PIL import ImageFont, Image, ImageDraw
 
 
@@ -11,22 +10,25 @@ class Trunic:
         "æ":"ae",       # back, sad     a
         "ɑː":"ar",      # arm, large    ar
         "ɑːɹ":"ar",
+        "ɑɹ":"ar",
         "ɒ":"o",        # swan, box     ah
+        "ɑ":"o",
         "eɪ":"ei",      # bay, game     ay
         "ɛ":"e",        # end, pet      e
         "e":"e",
+        "ᵻ":"e",
         "iː":"ii",      # bee, team     ee
         "i":"ii",
         "iə":"ir",      # near, here    eer
         "ɪɹ":"ir",
-        "ə":"a",        # the, about    eh      # Map to a or e dependant on consonant?
-        "ᵻ":"e",
+        "ə":"a",        # the, about    eh
         "ʌ":"a",
         "eə":"er",      # air, vary     ere
         "ɛɹ":"er",
         "ɪ":"i",        # bit, rich     i
         "aɪ":"ai",      # guy, life     ie
         "ɜː":"xr",      # bird, work    ir
+        "ɝ":"xr",
         "ɐ":"xr",
         "ɚ":"xr",
         "aɪə":"aicxr",  # fire          ire
@@ -35,11 +37,13 @@ class Trunic:
         "oʊ":"ou",
         "ɔɪ":"oi",      # toy, avoid    oi
         "uː":"u",       # too, june     oo
+        "u":"u",
         "ʊ":"x",        # wolf, good    ou
         "aʊ":"au",      # how, hour     ow
         "ɔː":"or",      # your, cure    ore
         "oːɹ":"or",
-        "ɔːɹ":"or"
+        "ɔːɹ":"or",
+        "ɔɹ":"or"
     }
 
     consts = {          # EXAMPLE       PRONOUNCIATION
@@ -53,7 +57,7 @@ class Trunic:
         "dʒ":"dj",      # jam, judge    j
         "k":"k",        # cat, skip     k
         "l":"l",        # live, leaf    l
-        "əl":"la_",     # apple, towel  el
+        "ɫ":"l",
         "m":"m",        # man, mime     m
         "n":"n",        # net, nun      n
         "ŋ":"ng",       # rink, sing    ng
@@ -73,78 +77,79 @@ class Trunic:
     }
 
     font = os.path.join(os.path.dirname(__file__), "trunic.otf")
+    _ = open(os.path.join(os.path.dirname(__file__), "ipa_dict.json"), "r", encoding="utf-8")
+    ipa_dict = msgspec.json.decode(_.read())
+    _.close()
 
     def __init__(self, text: str) -> None:
-        sep = Separator(phone=" ", word=None)
-        self.phonemes = phonemize(text.split(), language="en-us", strip=True, separator=sep, preserve_punctuation=True)
-        self.phonemes = [i.split() for i in self.phonemes]
+        self.phonemes = []
         self.symbols = 0
 
-        for word in self.phonemes:
-            for i, _ in enumerate(word):
-                if i + 1 < len(word) - 1:
-                    if word[i] == "ŋ" and word[i + 1] == "ɡ":
-                        del word[i + 1]
+        for word in text.lower().split():
+            ipa = Trunic.ipa_dict.get(word)
+            if ipa is None:
+                msg = "Unrecognised word '{}'".format(word)
+                raise RuntimeError(msg)
+
+            self.phonemes.append(ipa[0].split())
 
 
-    # Recursive solution.
-    def _build_str(self, word=None, lst=None, out=""):
-        # Base case.
-        if lst is not None and len(lst) == 0:
-            return out
-        
-        if lst is None:
-            lst = deepcopy(word)
+    def _build_str(self, word):
+        lst = deepcopy(word)
+        out = ""
 
-        # Get a phoneme pair.
-        x = lst.pop(0)
-        y = None
-        if len(lst) > 0:
-            y = lst.pop(0)
+        while True:
+            # Break the loop if phonemes are exhausted.
+            if lst is not None and len(lst) == 0:
+                return out
 
-        if y is not None:
-            # CV
-            if x in dict.keys(Trunic.consts) and y in dict.keys(Trunic.vowels):
-                out += Trunic.consts.get(x)
-                out += Trunic.vowels.get(y)
+            # Get a phoneme pair.
+            x = lst.pop(0)
+            y = None
+            if len(lst) > 0:
+                y = lst.pop(0)
+
+            if y is not None:
+                # CV
+                if x in dict.keys(Trunic.consts) and y in dict.keys(Trunic.vowels):
+                    out += Trunic.consts.get(x)
+                    out += Trunic.vowels.get(y)
+                    self.symbols += 1
+
+                # VC
+                elif x in dict.keys(Trunic.vowels) and y in dict.keys(Trunic.consts):
+                    out += Trunic.consts.get(y)
+                    out += Trunic.vowels.get(x)
+                    out += "_"
+                    self.symbols += 1
+
+                # CC
+                elif x in dict.keys(Trunic.consts) and y in dict.keys(Trunic.consts):
+                    out += Trunic.consts.get(x)
+                    lst.insert(0, y)
+
+                # VV
+                elif x in dict.keys(Trunic.vowels) and y in dict.keys(Trunic.vowels):
+                    out += Trunic.vowels.get(x)
+                    lst.insert(0, y)
+            else:
+                # C
+                if x in dict.keys(Trunic.consts):
+                    out += Trunic.consts.get(x)
+
+                # V
+                elif x in dict.keys(Trunic.vowels):
+                    out += "c"
+                    out += Trunic.vowels.get(x)
+
                 self.symbols += 1
-
-            # VC
-            elif x in dict.keys(Trunic.vowels) and y in dict.keys(Trunic.consts):
-                out += Trunic.consts.get(y)
-                out += Trunic.vowels.get(x)
-                out += "_"
-                self.symbols += 1
-
-            # CC
-            elif x in dict.keys(Trunic.consts) and y in dict.keys(Trunic.consts):
-                out += Trunic.consts.get(x)
-                lst.insert(0, y)
-
-            # VV
-            elif x in dict.keys(Trunic.vowels) and y in dict.keys(Trunic.vowels):
-                out += Trunic.vowels.get(x)
-                lst.insert(0, y)
-        else:
-            # C
-            if x in dict.keys(Trunic.consts):
-                out += Trunic.consts.get(x)
-
-            # V
-            elif x in dict.keys(Trunic.vowels):
-                out += "c"
-                out += Trunic.vowels.get(x)
-
-            self.symbols += 1
  
-        return self._build_str(lst=lst, out=out)
-
 
     """
     Returns the string in the format specified by
     https://github.com/dirdam/fonts/tree/main/tunic#how-to-use-the-font
     """
-    def decode(self) -> str:
+    def encode(self) -> str:
         output = ""
         self.symbols = 0
         self.spaces = 0
@@ -157,20 +162,23 @@ class Trunic:
         if len(self.phonemes) > 1:
             self.spaces += len(self.phonemes) - 1
 
-        return output
+        return output.strip()
 
 
+    """
+    Returns the IPA pronounciation for the string.
+    """
     def to_ipa(self) -> str:
-        output = "/"
+        output = ""
         for word in self.phonemes:
             for i in range(0, len(word)):
                 output += word[i]
             output += " "
-        return output.strip() + "/"
+        return "/{}/".format(output.strip())
     
 
     """
-    Prints a list of words broken down into their phonemes.
+    Returns a list containing lists of phonemes for each word in the string.
     """
     def to_string(self) -> str:
         return str(self.phonemes)
@@ -178,8 +186,7 @@ class Trunic:
 
     """
     Creates a new .png file containing the Trunic text.
-    Accepts transparency values in colours.
-    Accepts hex, rgb, hsl and hsv strings.
+    Accepts hex, rgb, hsl and hsv strings with optional alpha channel.
     """
     def to_png(self, 
                path: str,
@@ -201,7 +208,7 @@ class Trunic:
         trunic = ImageFont.truetype(Trunic.font, font_size)
         img = Image.new("RGBA", size=(w, h), color=back_color)
         draw = ImageDraw.Draw(img)
-        draw.text(xy=(font_size / 10, font_size / 6), text=self.decode(), fill=font_color, font=trunic)
+        draw.text(xy=(font_size / 10, font_size / 6), text=self.encode(), fill=font_color, font=trunic)
 
         file_name += ".png"
         img.save(fp=os.path.join(path, file_name), bitmap_format="png")
