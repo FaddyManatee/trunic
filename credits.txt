@@ -1,2 +1,0 @@
-guide.png by oposdeo and Ero from https://tunic.wiki/books/faq/page/helpful-links
-src/trunic.otf from https://github.com/dirdam/fonts/tree/main/tunic

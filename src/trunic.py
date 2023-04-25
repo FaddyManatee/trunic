@@ -8,6 +8,7 @@ from PIL import ImageFont, Image, ImageDraw
 class Trunic:
     vowels = {          # EXAMPLE       # PRONOUNCIATION
         "æ":"ae",       # back, sad     a
+        "ɔ":"ae",
         "ɑː":"ar",      # arm, large    ar
         "ɑːɹ":"ar",
         "ɑɹ":"ar",
@@ -166,6 +167,13 @@ class Trunic:
 
 
     """
+    Returns a list containing lists of phonemes for each word in the string.
+    """
+    def get_phonemes(self) -> list:
+        return self.phonemes
+
+
+    """
     Returns the IPA pronounciation for the string.
     """
     def to_ipa(self) -> str:
@@ -175,13 +183,6 @@ class Trunic:
                 output += word[i]
             output += " "
         return "/{}/".format(output.strip())
-    
-
-    """
-    Returns a list containing lists of phonemes for each word in the string.
-    """
-    def to_string(self) -> str:
-        return str(self.phonemes)
 
 
     """
